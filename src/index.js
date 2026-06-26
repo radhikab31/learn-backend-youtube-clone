@@ -4,4 +4,15 @@ dotenv.config({
 });
 import connectDB from "./db/index.js";
 
-connectDB();
+connectDB()
+  .then(() => {
+    app.listen(process.env.PORT, () => {
+      console.log("Sever is listening at port", process.env.PORT);
+      app.on("error", () => {
+        console.log("Server has not started properly");
+      });
+    });
+  })
+  .catch((err) => {
+    console.error("DB not connected", err);
+  });
