@@ -6,3 +6,4 @@ class ApiResponse {
       (this.success = statusCode < 400));
   }
 }
+//learn about this.data in node or response refer chatgpt for better reponse
