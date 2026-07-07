@@ -6,4 +6,6 @@ class ApiResponse {
       (this.success = statusCode < 400));
   }
 }
+
+export { ApiResponse };
 //learn about this.data in node or response refer chatgpt for better reponse
