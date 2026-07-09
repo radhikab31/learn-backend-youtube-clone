@@ -2,7 +2,10 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/users.model.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import {
+  deleteFromCloudinary,
+  uploadOnCloudinary,
+} from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken";
 const options = {
   httpOnly: true,
@@ -22,6 +25,42 @@ const generateAccessandRefreshTokens = async (userId) => {
   } catch (error) {
     throw new ApiError(500, "Error while generating access and refresh token");
   }
+};
+
+const getPublicIdFromUrl = (url) => {
+  const parts = url.split("/");
+  const fileName = parts[parts.length - 1];
+  return fileName.split(".")[0]; // strips extension
+};
+
+const updateFileImage = async (req, res, field) => {
+  const fileLocalPath = req.file?.path;
+  if (!fileLocalPath) {
+    throw new ApiError(400, " file is required");
+  }
+
+  const file = await uploadOnCloudinary(fileLocalPath);
+  if (!file?.url) {
+    throw new ApiError(500, "Image url not available");
+  }
+
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+  const oldFileUrl = user[field];
+
+  const updatedUser = await User.findByIdAndUpdate(
+    req.user._id,
+    { $set: { [field]: file.url } },
+    { new: true }
+  ).select("-password -refreshToken");
+
+  if (oldFileUrl) {
+    await deleteFromCloudinary(getPublicIdFromUrl(oldFileUrl));
+  }
+
+  return updatedUser;
 };
 
 const registerUser = asyncHandler(async (req, res) => {
@@ -200,5 +239,79 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       )
     );
 });
+const changePassword = asyncHandler(async (req, res) => {
+  //fetch the old, new and confirm password from the req
+  //check new and confirm password are same
+  //fetch the user
+  //check the old password match from the db
+  //replace the new password
+  //return the response
+  const { oldPassword, newPassword, confirmPassword } = req.body;
+  if (!(confirmPassword === newPassword)) {
+    throw new ApiError(401, "new and confirm Password should match");
+  }
+  const user = await User.findById(req.user?._id);
 
-export { registerUser, loginUser, logoutUser, refreshAccessToken };
+  const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
+  if (!isPasswordCorrect) {
+    throw new ApiError(402, "Old password is invalid");
+  }
+
+  user.password = newPassword;
+  await user.save({ validateBeforeSave: false });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password updated successfully"));
+});
+const getCurrentUser = asyncHandler(async (req, res) => {
+  //get the from the req (basically here there is amidleware that is)
+  req
+    .status(200)
+    .json(new ApiResponse(200, req.user, "user fetched successfully"));
+});
+const updateAccountDetails = asyncHandler(async (req, res) => {
+  const { fullName, email } = req.body;
+
+  if (!fullName || !email) {
+    throw new ApiError(401, "Credentials are required");
+  }
+  const user = await User.findByIdAndUpdate(
+    req.user?._id,
+    {
+      $set: {
+        fullName: fullName,
+        email: email,
+      },
+    },
+    { new: true }
+  ).select("-password");
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, user, "Account details updated successfully"));
+});
+
+const updateAvatarFile = asyncHandler(async (req, res) => {
+  const user = await updateFileImage(req, res, "avatar");
+  return res.status(200).json(200, user, "Avatar file updated");
+});
+
+const updateCoverImage = asyncHandler(async (req, res) => {
+  const user = await updateFileImage(req, res, "coverImage");
+  return res.status(200).json(200, user, "Cover Image file updated");
+});
+
+// changePassword, getCurrentUser, updateAccountDetails, updateAvatarFile, updateCoverImage
+
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  refreshAccessToken,
+  changePassword,
+  getCurrentUser,
+  updateAccountDetails,
+  updateAvatarFile,
+  updateCoverImage,
+};
