@@ -27,18 +27,18 @@ router.route("/register").post(
     },
   ]),
   registerUser
-);
+); //working
 
-router.route("/login").post(loginUser);
-router.route("/logout").post(verifyJWT, logoutUser);
-router.route("/refreh-token").post(refreshAccessToken);
-router.route("/change-password").post(verifyJWT, changePassword);
-router.route("/get-user").post(verifyJWT, getCurrentUser);
-router.route("/update-account-details").post(verifyJWT, updateAccountDetails);
+router.route("/login").post(loginUser); //working
+router.route("/logout").post(verifyJWT, logoutUser); //working
+router.route("/refreh-token").post(refreshAccessToken); //working
+router.route("/change-password").post(verifyJWT, changePassword); //working
+router.route("/get-user").get(verifyJWT, getCurrentUser); //working
+router.route("/update-account-details").post(verifyJWT, updateAccountDetails); //working
 router
   .route("/update-avatar")
-  .post(upload.single("avatar"), verifyJWT, updateAvatarFile);
+  .post(upload.single("avatar"), verifyJWT, updateAvatarFile); //working
 router
   .route("/update-cover-image")
-  .post(upload.single("coverImage"), verifyJWT, updateCoverImage);
+  .post(upload.single("coverImage"), verifyJWT, updateCoverImage); //working
 export default router;

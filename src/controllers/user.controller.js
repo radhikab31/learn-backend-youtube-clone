@@ -151,7 +151,7 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new ApiError(401, "wrong credentials entered");
   }
 
-  const { accessToken, newRefreshToken } = await generateAccessandRefreshTokens(
+  const { accessToken, refreshToken } = await generateAccessandRefreshTokens(
     user._id
   );
 
@@ -162,11 +162,11 @@ const loginUser = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", newRefreshToken, options)
+    .cookie("refreshToken", refreshToken, options)
     .json(
       new ApiResponse(
         200,
-        { user: loggedInUser, accessToken, refreshToken: newRefreshToken },
+        { user: loggedInUser, accessToken, refreshToken },
         "User logged in successfully"
       )
     );
@@ -203,8 +203,9 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   //generate new access and refresh tokens
   //send them as cookie again
   //send response
-
-  const incomingRefreshToken = req.cookie.refreshToken || req.body.refreshToken;
+  console.log("check", req.cookies, req.body);
+  const incomingRefreshToken =
+    req.cookies?.refreshToken || req.body?.refreshToken;
 
   if (!incomingRefreshToken) {
     throw new ApiError(401, "unauthorized refresh token");
@@ -223,18 +224,18 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     throw new ApiError(401, "Refresh token is used or expired");
   }
 
-  const { accessToken, newRefreshToken } = await generateAccessandRefreshTokens(
+  const { accessToken, refreshToken } = await generateAccessandRefreshTokens(
     user._id
   );
 
   return res
     .status(200)
     .cookie("accessToken", accessToken, options)
-    .cookie("refreshToken", newRefreshToken, options)
+    .cookie("refreshToken", refreshToken, options)
     .json(
       new ApiResponse(
         200,
-        { accessToken, refreshToken: newRefreshToken },
+        { accessToken, refreshToken: refreshToken },
         "Refresh token generated"
       )
     );
@@ -266,7 +267,7 @@ const changePassword = asyncHandler(async (req, res) => {
 });
 const getCurrentUser = asyncHandler(async (req, res) => {
   //get the from the req (basically here there is amidleware that is)
-  req
+  res
     .status(200)
     .json(new ApiResponse(200, req.user, "user fetched successfully"));
 });
